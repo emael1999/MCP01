@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from enum import Enum
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import os
 import requests
 import json
@@ -34,11 +34,25 @@ class GooglePlacesInput(BaseModel):
 class GooglePlacesOutput(BaseModel):
     results: str
 
-# --- FastAPI app ---
-app = FastAPI()
+# --- MCP Tool Metadata Model ---
+class MCPToolDescription(BaseModel):
+    name: str
+    description: str
+    input_schema: Dict[str, Any]
+    output_schema: Dict[str, Any]
 
-@app.post("/google_directions", response_model=RoutingOutput)
+# --- FastAPI app ---
+app = FastAPI(
+    title="MCP Server",
+    description="MCP-enabled server exposing tools for LLM/agent use.",
+    version="1.0.0"
+)
+
+@app.post("/google_directions", response_model=RoutingOutput, tags=["tools"])
 def google_directions_endpoint(inputs: RoutingInput):
+    """
+    Calls the Google Directions API to get travel distance and duration.
+    """
     url = "https://maps.googleapis.com/maps/api/directions/json"
     api_key = os.environ.get('GPLACES_API_KEY')
     if not api_key:
@@ -61,8 +75,11 @@ def google_directions_endpoint(inputs: RoutingInput):
         duration_text=leg["duration"]["text"]
     )
 
-@app.post("/google_places", response_model=GooglePlacesOutput)
+@app.post("/google_places", response_model=GooglePlacesOutput, tags=["tools"])
 def google_places_endpoint(inputs: GooglePlacesInput):
+    """
+    Uses Google Places API to search for places matching a query.
+    """
     api_key = os.environ.get('GPLACES_API_KEY')
     if not api_key:
         raise HTTPException(status_code=500, detail="GPLACES_API_KEY environment variable not set.")
@@ -71,11 +88,51 @@ def google_places_endpoint(inputs: GooglePlacesInput):
         query = inputs.query
         if inputs.location:
             query += f" near {inputs.location}"
-        # The tool's run method expects a string query
         print(f'Zapytanie do Google Places {query}')
         results = tool.run(query)
         return GooglePlacesOutput(results=results)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# --- MCP Features: Tool Discovery Endpoint ---
+@app.get("/mcp/tools", response_model=List[MCPToolDescription], tags=["mcp"])
+def list_tools():
+    """
+    Lists all tools exposed by this MCP server, with input/output schemas.
+    """
+    # Tool metadata
+    tools = [
+        MCPToolDescription(
+            name="google_directions",
+            description="Get travel distance and duration between two locations using Google Directions.",
+            input_schema=RoutingInput.schema(),
+            output_schema=RoutingOutput.schema()
+        ),
+        MCPToolDescription(
+            name="google_places",
+            description="Search for places using Google Places API.",
+            input_schema=GooglePlacesInput.schema(),
+            output_schema=GooglePlacesOutput.schema()
+        ),
+    ]
+    return tools
+
+# --- MCP Features: Tool Prompt Endpoint ---
+@app.get("/mcp/prompt", tags=["mcp"])
+def get_mcp_prompt():
+    """
+    Returns a system prompt describing available tools and their usage for LLMs/agents.
+    """
+    prompt = (
+        "You can answer questions directly or use one of these tools:\n"
+        "1. google_directions: Get directions between two places.\n"
+        "   Input: {\"origin\": \"string\", \"destination\": \"string\", \"mode\": \"driving|walking|bicycling|transit\"}\n"
+        "2. google_places: Search for places.\n"
+        "   Input: {\"query\": \"string\", \"location\": \"string (optional)\"}\n"
+        "If you need to use a tool, respond ONLY with:\n"
+        "TOOL_CALL: <tool_name> <JSON input>\n"
+        "Otherwise, answer normally."
+    )
+    return {"prompt": prompt}
 
 # To run: uvicorn mcp_server:app --reload
