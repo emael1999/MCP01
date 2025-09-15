@@ -20,6 +20,7 @@ async def interact_with_server():
 
     try:
         async with client:
+            
             print("Zaczynamy:\n")
             print(f'Client is connected: {client.is_connected()} \n {client.initialize_result}')
             

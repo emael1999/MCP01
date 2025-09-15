@@ -1,6 +1,6 @@
 
 from fastmcp import FastMCP
-import asyncio
+#import asyncio
 
 import requests
 from langchain_google_community import GooglePlacesTool
@@ -8,9 +8,9 @@ import os
 
 from fastmcp import Client 
 
-mcp = FastMCP(name="Google Tools MCP Server")
+mcp_google = FastMCP(name="Google Tools MCP Server")
 
-@mcp.tool()
+@mcp_google.tool()
 def google_directions(origin: str, destination: str, mode: str = "driving") -> dict:
     """
     Get travel distance and duration between two locations using Google Directions.
@@ -35,7 +35,7 @@ def google_directions(origin: str, destination: str, mode: str = "driving") -> d
         "duration_text": leg["duration"]["text"]
     }
 
-@mcp.tool()
+@mcp_google.tool()
 def google_places(query: str, location: str = None) -> dict:
     """
     Search for places using Google Places API.
@@ -51,14 +51,14 @@ def google_places(query: str, location: str = None) -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp_google.run()
 
 
 '''
 async def tst():
     print("\n--- Testing Server Locally ---")
     # Point the client directly at the server object
-    client = Client(mcp)
+    client = Client(mcp_google)
 
     # Clients are asynchronous, so use an async context manager
     async with client:
