@@ -1,6 +1,7 @@
 from fastmcp.client.transports import StreamableHttpTransport
 from fastmcp import Client
 import asyncio
+import json
 
 async def interact_with_server():
     print("--- Creating Client ---")
@@ -12,7 +13,7 @@ async def interact_with_server():
     # Option 2: Connect to a server run via `fastmcp run ... --transport sse --port 8080`
     #transport = StreamableHttpTransport(url="http://127.0.0.1:5003/mcp")
     #client = Client(transport)
-    client = Client("http://127.0.0.1:5003/mcp")
+    client = Client("http://127.0.0.1:5004/mcp")
     
 
    
@@ -25,10 +26,14 @@ async def interact_with_server():
             print(f'Client is connected: {client.is_connected()} \n {client.initialize_result}')
             
             list_tools = await client.list_tools()
-            print(f'List tools: \n {list_tools}\n')
-            
-            #list_tools_mcp = await client.list_tools_mcp()
-            #print (f'List Tools mcp: \n {list_tools_mcp}\n')
+            for t in list_tools:
+               print(
+                    f"Tool:\n"
+                    f"Name: {t.name}\n"
+                    f"Description: {t.description}\n"
+                    f"InputSchema:\n{json.dumps(t.inputSchema, indent=4)}\n"
+                    f"OutputSchema:\n{json.dumps(t.outputSchema, indent=4)}"
+            )
 
     except Exception as e:
         print(f"An error occurred: {e}")
