@@ -6,8 +6,10 @@ import requests
 from langchain_google_community import GooglePlacesTool
 import os
 
-#import asyncio
-#from fastmcp import Client 
+import asyncio
+from fastmcp import Client 
+
+import json
 
 # Your FastMCP server instance
 mcp_google = FastMCP(name="Google Maps MCP Server")
@@ -86,8 +88,14 @@ def google_directions(
         "key": api_key,
         "mode": mode
     }
+
+    print(f'google_directions: \n{params}')
+
     response = requests.get(url, params=params)
+
     data = response.json()
+    
+    print(f'Response data:\n{json.dumps(data, indent=4)}')
 
     if data["status"] != "OK":
         raise Exception(f"Google API error: {data['status']}")
@@ -99,7 +107,7 @@ def google_directions(
     }
 
 
-
+''''''
 if __name__ == "__main__":
     mcp_google.run()
 
