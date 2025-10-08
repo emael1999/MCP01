@@ -2,15 +2,38 @@
 from fastmcp import FastMCP
 from typing import Annotated
 
+import os
+import json
+
 #import asyncio
 #from fastmcp import Client 
+
+def load_config(path="config.json") -> dict:
+    with open(path, "r") as f:
+        return json.load(f)
+
+CONFIG_PATH = os.getenv("MCP_CONFIG_PATH", "config.json")
+config = load_config(CONFIG_PATH)
+
+TOOL_DESCRIPTION = config.get("description", "Default tool description.")
+TOOL_NAME = config.get("tool_name", "retriever_chunks")
+TOOL_TAGS = config.get("tool_tags", ["retrieval", "search", "context", "llm"])
+DB_HOST = config.get("db_host", "localhost")  # <- This is your new config parameter
+
+REQUIRED_KEYS = ["description", "tool_name", "tool_tags", "db_host"]
+for key in REQUIRED_KEYS:
+    if key not in config:
+        raise ValueError(f"Missing required config key: {key}")
+    else:
+        print(f"[CONFIG] {key}: {config.get(key)}")
+
 
 mcp_retriever = FastMCP(name="Retriever Tools MCP Server")
 
 @mcp_retriever.tool(
-    name="retriever_chunks",
-    description="Retrieve relevant information chunks based on a user's question. Useful for grounding LLM answers with up-to-date context.",
-    tags=["retrieval", "search", "question-answering", "context", "llm"],
+    name=TOOL_NAME,
+    description=TOOL_DESCRIPTION,
+    tags=TOOL_TAGS,
     annotations={"read_only": True},
     output_schema={
         "type": "object",
@@ -33,6 +56,7 @@ def retriever_chunks(
 
 if __name__ == "__main__":
     mcp_retriever.run()
+
 
 '''
 async def tst():

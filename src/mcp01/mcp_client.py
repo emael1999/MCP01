@@ -10,22 +10,27 @@ async def main():
             "http://127.0.0.1:5004/mcp"
     ]
 
-    async with MCPToolsManager(servers) as manager:
-        tools = manager.get_all_tools()
+    #async with MCPToolsManager(servers) as manager:
+    manager = MCPToolsManager(servers)
+    await manager.setup()
+    tools = manager.get_all_tools()
         
-        print(f"\nLoaded {len(tools)} tools from {len(servers)} servers.")
+    print(f"\nLoaded {len(tools)} tools from {len(servers)} servers.")
 
-        # Create LLM and agent
-        llm = ChatOpenAI(temperature=0)
-        agent = create_react_agent(llm, tools)
+    # Create LLM and agent
+    llm = ChatOpenAI(temperature=0)
+    agent = create_react_agent(llm, tools)
 
-        # Invoke query
-        query = "Find walking distance between Abbey Road Crossing and Buckingham Palace"
-        result = await agent.ainvoke({"messages": query})
+    # Invoke query
+    #query = "Find walking distance between Abbey Road Crossing and Buckingham Palace"
+    query = "What is there in the heart of Chile?"
+    result = await agent.ainvoke({"messages": query})
 
-        # Output response
-        final_message = result.get("messages")[-1].content
-        print(f"\nAgent response:\n{final_message}")
+    # Output response
+    final_message = result.get("messages")[-1].content
+    print(f"\nAgent response:\n{final_message}")
+
+    await manager.teardown()
     
     
 if __name__ == "__main__":
